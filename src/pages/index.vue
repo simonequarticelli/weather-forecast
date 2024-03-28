@@ -1,11 +1,5 @@
 <script setup>
 import ChartJsBarChart from '@/views/chartjs/ChartJsBarChart.vue'
-import ChartJsBubbleChart from '@/views/chartjs/ChartJsBubbleChart.vue'
-import ChartJsHorizontalBarChart from '@/views/chartjs/ChartJsHorizontalBarChart.vue'
-import ChartJsLineAreaChart from '@/views/chartjs/ChartJsLineAreaChart.vue'
-import ChartJsLineChart from '@/views/chartjs/ChartJsLineChart.vue'
-import ChartJsRadarChart from '@/views/chartjs/ChartJsRadarChart.vue'
-import ChartJsScatterChart from '@/views/chartjs/ChartJsScatterChart.vue'
 import ChartJsPolarAreaChart from '@/views/chartjs/ChartJsPolarAreaChart.vue'
 import { openWeatherRepository } from "@/repositories/openWeatherRepository"
 import { integerValidator, lengthValidator, requiredValidator } from "@validators"
@@ -38,10 +32,22 @@ const formError = ref(null)
 const isFlatSnackbarVisible = ref(false)
 
 const openWeatherResponse = reactive({
+  name: '',
+  country: '',
+  weather: {
+    description: '',
+    icon: '',
+  },
   snow: '',
   rain: '',
   clouds: '',
   humidity: '',
+  sunrise: '',
+  sunset: '',
+  coord: {
+    lat: '',
+    lon: '',
+  },
 })
 
 const languages = [
@@ -61,8 +67,8 @@ const selectedLanguage = ref({
 })
 
 const filters = reactive({
-  weathering: true,
-  sunriseSunset: false,
+  humidityAndClouds: true,
+  rainAndSnow: false,
   temperature: false,
 })
 
@@ -87,10 +93,18 @@ const onSubmit = () => {
       setTimeout(() => {
         openWeatherRepository().index(request).then(response => {
           console.log(response.data)
+          openWeatherResponse.name = response.data.name
+          openWeatherResponse.country = response.data.sys.country
+          openWeatherResponse.weather.description = response.data.weather[0].description
+          openWeatherResponse.weather.icon = response.data.weather[0].icon
           openWeatherResponse.clouds = response.data.clouds.all
           openWeatherResponse.humidity = response.data.main.humidity
-          openWeatherResponse.rain = response.data?.rain
-          openWeatherResponse.snow = response.data?.snow
+          openWeatherResponse.rain = response.data.rain !== undefined ? response.data.rain['1h'] : ''
+          openWeatherResponse.snow = response.data.snow !== undefined ? response.data.rain['1h'] : ''
+          openWeatherResponse.sunrise = new Date(response.data.sys.sunrise * 1000).toLocaleTimeString()
+          openWeatherResponse.sunset = new Date(response.data.sys.sunset * 1000).toLocaleTimeString()
+          openWeatherResponse.coord.lat = response.data.coord.lat
+          openWeatherResponse.coord.lon = response.data.coord.lon
         }).catch(error => {
           formError.value = error.response.data
           isFlatSnackbarVisible.value = true
@@ -127,7 +141,6 @@ const onSubmit = () => {
             <VRow>
               <!-- 👉 Search bar -->
               <VCol cols="12">
-                {{ openWeatherResponse }}
                 <AppTextField
                   v-model="request.q"
                   autofocus
@@ -188,16 +201,12 @@ const onSubmit = () => {
             <VRow>
               <VCol cols="12">
                 <VCheckbox
-                  v-model="filters.weathering"
+                  v-model="filters.humidityAndClouds"
                   label="Humidity/Clouds"
                 />
                 <VCheckbox
-                  v-model="filters.sunriseSunset"
+                  v-model="filters.rainAndSnow"
                   label="Sunrise/Sunset"
-                />
-                <VCheckbox
-                  v-model="filters.temperature"
-                  label="Temperature"
                 />
               </VCol>
             </VRow>
@@ -207,9 +216,51 @@ const onSubmit = () => {
     </VCol>
 
     <template v-if="! processing">
+      <VCol
+        cols="12"
+        md="4"
+      >
+        <VCard>
+          <VCardItem>
+            <VCardTitle>{{ openWeatherResponse.name }} {{ openWeatherResponse.country }}</VCardTitle>
+          </VCardItem>
+          <div class="d-flex align-center">
+            <img
+              :src="`https://openweathermap.org/img/wn/${openWeatherResponse.weather.icon}.png`"
+              alt="weather"
+              width="130"
+            >
+            <VCardText>{{ openWeatherResponse.weather.description }}</VCardText>
+          </div>
+          <VCardText>
+            Sunrise
+            <VCardSubtitle class="pa-0">
+              {{ openWeatherResponse.sunrise }}
+            </VCardSubtitle>
+          </VCardText>
+          <VCardText>
+            Sunset
+            <VCardSubtitle class="pa-0">
+              {{ openWeatherResponse.sunset }}
+            </VCardSubtitle>
+          </VCardText>
+          <VCardText>
+            Latitude
+            <VCardSubtitle class="pa-0">
+              {{ openWeatherResponse.coord.lat }}
+            </VCardSubtitle>
+          </VCardText>
+          <VCardText>
+            Longitude
+            <VCardSubtitle class="pa-0">
+              {{ openWeatherResponse.coord.lon }}
+            </VCardSubtitle>
+          </VCardText>
+        </VCard>
+      </VCol>
       <!-- 👉 Humidity and Clouds Polar Area Chart -->
       <VCol
-        v-if="filters.weathering"
+        v-if="filters.humidityAndClouds"
         cols="12"
         md="4"
       >
@@ -230,171 +281,23 @@ const onSubmit = () => {
       </VCol>
       <!-- 👉 Rain and Snow Polar Area Chart -->
       <VCol
-        v-if="filters.weathering"
+        v-if="filters.rainAndSnow"
         cols="12"
         md="4"
       >
         <VCard title="Rain and Snow">
           <VCardText>
-            <ChartJsPolarAreaChart
+            <ChartJsBarChart
               v-if="openWeatherResponse.rain || openWeatherResponse.snow"
               :colors="chartJsCustomColors"
               :labels="['Rain', 'Show']"
-              label-message="Volume for the last 1 hour, mm."
               :data="[openWeatherResponse.rain, openWeatherResponse.snow]"
-              :background-color="[
-                chartJsCustomColors.areaChartBlue,
-                chartJsCustomColors.polarChartGrey,
-              ]"
             />
             <p v-else>Nothing to show</p>
           </VCardText>
         </VCard>
       </VCol>
     </template>
-
-<!--    &lt;!&ndash; 👉 Statistics Line Chart  &ndash;&gt;-->
-<!--    <VCol cols="12">-->
-<!--      <VCard-->
-<!--        title="Statistics"-->
-<!--        subtitle="Commercial networks and enterprises"-->
-<!--      >-->
-<!--        <VCardText>-->
-<!--          <ChartJsLineChart :colors="chartJsCustomColors" />-->
-<!--        </VCardText>-->
-<!--      </VCard>-->
-<!--    </VCol>-->
-
-<!--    &lt;!&ndash; 👉 Radar Chart &ndash;&gt;-->
-<!--    <VCol-->
-<!--      cols="12"-->
-<!--      md="6"-->
-<!--    >-->
-<!--      <VCard title="Radar Chart">-->
-<!--        <VCardText>-->
-<!--          <ChartJsRadarChart />-->
-<!--        </VCardText>-->
-<!--      </VCard>-->
-<!--    </VCol>-->
-
-<!--    &lt;!&ndash; 👉  Bubble Chart &ndash;&gt;-->
-<!--    <VCol cols="12">-->
-<!--      <VCard title="Bubble Chart">-->
-<!--        <template #append>-->
-<!--          <span class="text-subtitle-2">$ 100,000</span>-->
-<!--        </template>-->
-
-<!--        <VCardText>-->
-<!--          <ChartJsBubbleChart :colors="chartJsCustomColors" />-->
-<!--        </VCardText>-->
-<!--      </VCard>-->
-<!--    </VCol>-->
-
-<!--    &lt;!&ndash; 👉 New Product Data Scatter Chart &ndash;&gt;-->
-<!--    <VCol cols="12">-->
-<!--      <VCard>-->
-<!--        <VCardItem class="d-flex flex-wrap justify-space-between gap-4">-->
-<!--          <VCardTitle>New Product Data</VCardTitle>-->
-
-<!--          <template #append>-->
-<!--            <VBtnToggle-->
-<!--              color="primary"-->
-<!--              variant="outlined"-->
-<!--              density="compact"-->
-<!--            >-->
-<!--              <VBtn>Daily</VBtn>-->
-<!--              <VBtn>Monthly</VBtn>-->
-<!--              <VBtn>Yearly</VBtn>-->
-<!--            </VBtnToggle>-->
-<!--          </template>-->
-<!--        </VCardItem>-->
-
-<!--        <VCardText>-->
-<!--          <ChartJsScatterChart :colors="chartJsCustomColors" />-->
-<!--        </VCardText>-->
-<!--      </VCard>-->
-<!--    </VCol>-->
-
-<!--    &lt;!&ndash; 👉 Data Science Area Line Chart &ndash;&gt;-->
-<!--    <VCol cols="12">-->
-<!--      <VCard>-->
-<!--        <VCardItem class="d-flex flex-wrap justify-space-between gap-4">-->
-<!--          <VCardTitle>-->
-<!--            Data Science-->
-<!--          </VCardTitle>-->
-
-<!--          <template #append>-->
-<!--            <div class="date-picker-wrapper">-->
-<!--              <AppDateTimePicker-->
-<!--                model-value="2022-06-09"-->
-<!--                prepend-inner-icon="tabler-calendar"-->
-<!--                density="compact"-->
-<!--                :config="{ position: 'auto right' }"-->
-<!--              />-->
-<!--            </div>-->
-<!--          </template>-->
-<!--        </VCardItem>-->
-
-<!--        <VCardText>-->
-<!--          <ChartJsLineAreaChart :colors="chartJsCustomColors" />-->
-<!--        </VCardText>-->
-<!--      </VCard>-->
-<!--    </VCol>-->
-
-<!--    &lt;!&ndash; 👉 Latest Statistics &ndash;&gt;-->
-<!--    <VCol-->
-<!--      cols="12"-->
-<!--      md="6"-->
-<!--    >-->
-<!--      <VCard>-->
-<!--        <VCardItem class="d-flex flex-wrap justify-space-between gap-4">-->
-<!--          <VCardTitle>Latest Statistics</VCardTitle>-->
-
-<!--          <template #append>-->
-<!--            <div class="date-picker-wrapper">-->
-<!--              <AppDateTimePicker-->
-<!--                model-value="2022-06-09"-->
-<!--                prepend-inner-icon="tabler-calendar"-->
-<!--                density="compact"-->
-<!--                :config="{ position: 'auto right' }"-->
-<!--              />-->
-<!--            </div>-->
-<!--          </template>-->
-<!--        </VCardItem>-->
-
-<!--        <VCardText>-->
-<!--          <ChartJsBarChart :colors="chartJsCustomColors" />-->
-<!--        </VCardText>-->
-<!--      </VCard>-->
-<!--    </VCol>-->
-
-<!--    &lt;!&ndash; 👉 Balance Horizontal Bar Chart &ndash;&gt;-->
-<!--    <VCol-->
-<!--      cols="12"-->
-<!--      md="6"-->
-<!--    >-->
-<!--      <VCard>-->
-<!--        <VCardItem class="d-flex flex-wrap justify-space-between gap-4">-->
-<!--          <VCardTitle>Balance</VCardTitle>-->
-<!--          <VCardSubtitle>$74,123</VCardSubtitle>-->
-
-<!--          <template #append>-->
-<!--            <div class="date-picker-wrapper">-->
-<!--              <AppDateTimePicker-->
-<!--                model-value="2022-06-09"-->
-<!--                prepend-inner-icon="tabler-calendar"-->
-<!--                density="compact"-->
-<!--                :config="{ position: 'auto right' }"-->
-<!--              />-->
-<!--            </div>-->
-<!--          </template>-->
-<!--        </VCardItem>-->
-
-<!--        <VCardText>-->
-<!--          <ChartJsHorizontalBarChart :colors="chartJsCustomColors" />-->
-<!--        </VCardText>-->
-<!--      </VCard>-->
-<!--    </VCol>-->
   </VRow>
 </template>
 
