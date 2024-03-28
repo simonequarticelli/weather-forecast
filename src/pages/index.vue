@@ -7,6 +7,7 @@ import ChartJsLineChart from '@/views/chartjs/ChartJsLineChart.vue'
 import ChartJsPolarAreaChart from '@/views/chartjs/ChartJsPolarAreaChart.vue'
 import ChartJsRadarChart from '@/views/chartjs/ChartJsRadarChart.vue'
 import ChartJsScatterChart from '@/views/chartjs/ChartJsScatterChart.vue'
+import { openWeatherRepository } from "@/repositories/openWeatherRepository"
 
 const chartJsCustomColors = {
   white: '#fff',
@@ -28,10 +29,61 @@ const chartJsCustomColors = {
   areaChartGreyLight: '#edf1f4',
   scatterChartWarning: '#ff9f43',
 }
+
+const city = ref('torino')
+const openWeatherResponse = ref([])
+
+onMounted(() => {
+  openWeatherRepository().index({
+    q: city.value,
+  }).then(response => {
+    console.log(response.data)
+    openWeatherResponse.value = response.data
+  })
+})
 </script>
 
 <template>
   <VRow id="chartjs-wrapper">
+    <VCol cols="12">
+      <pre>
+        {{ openWeatherResponse }}
+      </pre>
+      <VForm @submit.prevent="() => {}">
+        <VRow>
+          <VCol
+            cols="12"
+            md="6"
+          >
+            <VCol cols="12">
+              <AppTextField
+                v-model="city"
+                label="City"
+                placeholder="City"
+              />
+            </VCol>
+            <VCol
+              cols="12"
+              class="d-flex gap-4"
+            >
+              <VBtn type="submit">
+                Search
+              </VBtn>
+
+              <VBtn
+                type="reset"
+                color="secondary"
+                variant="tonal"
+              >
+                Reset
+              </VBtn>
+            </VCol>
+          </VCol>
+
+        </VRow>
+      </VForm>
+    </VCol>
+
     <!-- 👉 Statistics Line Chart  -->
     <VCol cols="12">
       <VCard
