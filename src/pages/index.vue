@@ -30,6 +30,22 @@ const processing = ref(false)
 const city = ref('')
 const formError = ref(null)
 const isFlatSnackbarVisible = ref(false)
+const dataNotfound = ref(false)
+
+const restoreInitialState = () => {
+  openWeatherResponse.name = ''
+  openWeatherResponse.country = ''
+  openWeatherResponse.weather.description = ''
+  openWeatherResponse.weather.icon = ''
+  openWeatherResponse.snow = ''
+  openWeatherResponse.rain = ''
+  openWeatherResponse.clouds = ''
+  openWeatherResponse.humidity = ''
+  openWeatherResponse.sunrise = ''
+  openWeatherResponse.sunset = ''
+  openWeatherResponse.coord.lat = ''
+  openWeatherResponse.coord.lon = ''
+}
 
 const openWeatherResponse = reactive({
   name: '',
@@ -80,19 +96,21 @@ const request = reactive({
 
 const onReset = () => {
   formError.value = null
-  refVForm.value?.reset()
+  request.q = ''
+  request.zip = ''
+  restoreInitialState()
 }
 
 onMounted(() => onSubmit())
 
 const onSubmit = () => {
   formError.value = null
+  dataNotfound.value = false
   refVForm.value?.validate().then(({ valid: isValid }) => {
     if (isValid) {
       processing.value = true
       setTimeout(() => {
         openWeatherRepository().index(request).then(response => {
-          console.log(response.data)
           openWeatherResponse.name = response.data.name
           openWeatherResponse.country = response.data.sys.country
           openWeatherResponse.weather.description = response.data.weather[0].description
@@ -106,8 +124,10 @@ const onSubmit = () => {
           openWeatherResponse.coord.lat = response.data.coord.lat
           openWeatherResponse.coord.lon = response.data.coord.lon
         }).catch(error => {
+          dataNotfound.value = true
           formError.value = error.response.data
           isFlatSnackbarVisible.value = true
+          restoreInitialState()
         }).finally(() => {
           processing.value = false
           city.value = null
@@ -140,7 +160,10 @@ const onSubmit = () => {
 
             <VRow>
               <!-- 👉 Search bar -->
-              <VCol cols="12">
+              <VCol
+                cols="12"
+                md="4"
+              >
                 <AppTextField
                   v-model="request.q"
                   autofocus
@@ -149,7 +172,10 @@ const onSubmit = () => {
                 />
               </VCol>
               <!-- 👉 Postal code -->
-              <VCol cols="12">
+              <VCol
+                cols="12"
+                md="4"
+              >
                 <AppTextField
                   v-model="request.zip"
                   :rules="[integerValidator, lengthValidator(request.postalCode, 5)]"
@@ -158,7 +184,10 @@ const onSubmit = () => {
                 />
               </VCol>
               <!-- 👉 Languages -->
-              <VCol cols="12">
+              <VCol
+                cols="12"
+                md="4"
+              >
                 <AppSelect
                   v-model="selectedLanguage"
                   :hint="`${selectedLanguage.language}, ${selectedLanguage.abbr}`"
@@ -177,7 +206,7 @@ const onSubmit = () => {
             <VRow>
               <VCol
                 cols="12"
-                class="d-flex gap-4"
+                class="d-flex justify-center gap-4"
               >
                 <VBtn
                   type="submit"
@@ -197,9 +226,14 @@ const onSubmit = () => {
               </VCol>
             </VRow>
 
+            <VDivider class="my-9" />
+
             <!-- 👉 Filters -->
             <VRow>
-              <VCol cols="12">
+              <VCol
+                v-if="! processing && ! dataNotfound"
+                cols="12"
+              >
                 <VCheckbox
                   v-model="filters.humidityAndClouds"
                   label="Humidity/Clouds"
@@ -216,87 +250,97 @@ const onSubmit = () => {
     </VCol>
 
     <template v-if="! processing">
-      <VCol
-        cols="12"
-        md="4"
-      >
-        <VCard>
-          <VCardItem>
-            <VCardTitle>{{ openWeatherResponse.name }} {{ openWeatherResponse.country }}</VCardTitle>
-          </VCardItem>
-          <div class="d-flex align-center">
-            <img
-              :src="`https://openweathermap.org/img/wn/${openWeatherResponse.weather.icon}.png`"
-              alt="weather"
-              width="130"
-            >
-            <VCardText>{{ openWeatherResponse.weather.description }}</VCardText>
-          </div>
-          <VCardText>
-            Sunrise
-            <VCardSubtitle class="pa-0">
-              {{ openWeatherResponse.sunrise }}
-            </VCardSubtitle>
-          </VCardText>
-          <VCardText>
-            Sunset
-            <VCardSubtitle class="pa-0">
-              {{ openWeatherResponse.sunset }}
-            </VCardSubtitle>
-          </VCardText>
-          <VCardText>
-            Latitude
-            <VCardSubtitle class="pa-0">
-              {{ openWeatherResponse.coord.lat }}
-            </VCardSubtitle>
-          </VCardText>
-          <VCardText>
-            Longitude
-            <VCardSubtitle class="pa-0">
-              {{ openWeatherResponse.coord.lon }}
-            </VCardSubtitle>
-          </VCardText>
-        </VCard>
-      </VCol>
-      <!-- 👉 Humidity and Clouds Polar Area Chart -->
-      <VCol
-        v-if="filters.humidityAndClouds"
-        cols="12"
-        md="4"
-      >
-        <VCard title="Humidity and Clouds">
-          <VCardText>
-            <ChartJsPolarAreaChart
-              :colors="chartJsCustomColors"
-              :labels="['Humidity', 'Clouds']"
-              label-message="Percentage"
-              :data="[openWeatherResponse.humidity, openWeatherResponse.clouds]"
-              :background-color="[
+      <template v-if="dataNotfound">
+        <VCol
+          cols="12"
+          class="d-flex justify-center"
+        >
+          <p>Nothing to show</p>
+        </VCol>
+      </template>
+      <template v-else>
+        <VCol
+          cols="12"
+          md="4"
+        >
+          <VCard>
+            <VCardItem>
+              <VCardTitle>{{ openWeatherResponse.name }} {{ openWeatherResponse.country }}</VCardTitle>
+            </VCardItem>
+            <div class="d-flex align-center">
+              <img
+                :src="`https://openweathermap.org/img/wn/${openWeatherResponse.weather.icon}.png`"
+                alt="weather"
+                width="130"
+              >
+              <VCardText>{{ openWeatherResponse.weather.description }}</VCardText>
+            </div>
+            <VCardText>
+              Sunrise
+              <VCardSubtitle class="pa-0">
+                {{ openWeatherResponse.sunrise }}
+              </VCardSubtitle>
+            </VCardText>
+            <VCardText>
+              Sunset
+              <VCardSubtitle class="pa-0">
+                {{ openWeatherResponse.sunset }}
+              </VCardSubtitle>
+            </VCardText>
+            <VCardText>
+              Latitude
+              <VCardSubtitle class="pa-0">
+                {{ openWeatherResponse.coord.lat }}
+              </VCardSubtitle>
+            </VCardText>
+            <VCardText>
+              Longitude
+              <VCardSubtitle class="pa-0">
+                {{ openWeatherResponse.coord.lon }}
+              </VCardSubtitle>
+            </VCardText>
+          </VCard>
+        </VCol>
+        <!-- 👉 Humidity and Clouds Polar Area Chart -->
+        <VCol
+          v-if="filters.humidityAndClouds"
+          cols="12"
+          md="4"
+        >
+          <VCard title="Humidity and Clouds">
+            <VCardText>
+              <ChartJsPolarAreaChart
+                :colors="chartJsCustomColors"
+                :labels="['Humidity', 'Clouds']"
+                label-message="Percentage"
+                :data="[openWeatherResponse.humidity, openWeatherResponse.clouds]"
+                :background-color="[
                 chartJsCustomColors.primary,
                 chartJsCustomColors.lineChartWarning,
               ]"
-            />
-          </VCardText>
-        </VCard>
-      </VCol>
-      <!-- 👉 Rain and Snow Polar Area Chart -->
-      <VCol
-        v-if="filters.rainAndSnow"
-        cols="12"
-        md="4"
-      >
-        <VCard title="Rain and Snow">
-          <VCardText>
-            <ChartJsBarChart
-              v-if="openWeatherResponse.rain || openWeatherResponse.snow"
-              :colors="chartJsCustomColors"
-              :labels="['Rain', 'Show']"
-              :data="[openWeatherResponse.rain, openWeatherResponse.snow]"
-            />
-            <p v-else>Nothing to show</p>
-          </VCardText>
-        </VCard>
-      </VCol>
+              />
+            </VCardText>
+          </VCard>
+        </VCol>
+        <!-- 👉 Rain and Snow Polar Area Chart -->
+        <VCol
+          v-if="filters.rainAndSnow"
+          cols="12"
+          md="4"
+        >
+          <VCard title="Rain and Snow">
+            <VCardText>
+              <ChartJsBarChart
+                v-if="openWeatherResponse.rain || openWeatherResponse.snow"
+                :colors="chartJsCustomColors"
+                :labels="['Rain', 'Show']"
+                :data="[openWeatherResponse.rain, openWeatherResponse.snow]"
+              />
+              <p v-else>Nothing to show</p>
+            </VCardText>
+          </VCard>
+        </VCol>
+      </template>
     </template>
   </VRow>
 </template>
