@@ -43,6 +43,13 @@ export default defineConfig({
     }),
     DefineOptions(),
   ],
+  server: {
+    host: true,
+    port: 8000,
+    watch: {
+      usePolling: true,
+    },
+  },
   define: { 'process.env': {} },
   resolve: {
     alias: {
