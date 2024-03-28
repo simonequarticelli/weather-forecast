@@ -31,11 +31,8 @@ const { width: windowWidth } = useWindowSize()
           />
         </IconBtn>
 
-        <NavSearchBar class="ms-lg-n3" />
-
-        <VSpacer />
-
         <NavbarThemeSwitcher />
+
       </div>
     </template>
 
