@@ -78,8 +78,8 @@ const languages = [
 ]
 
 const selectedLanguage = ref({
-  language: 'English',
-  abbr: 'EN',
+  language: 'Italiano',
+  abbr: 'IT',
 })
 
 const filters = reactive({
@@ -98,7 +98,6 @@ const onReset = () => {
   formError.value = null
   request.q = ''
   request.zip = ''
-  restoreInitialState()
 }
 
 onMounted(() => onSubmit())
