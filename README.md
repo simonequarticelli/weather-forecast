@@ -39,12 +39,12 @@ http://localhost:8000
 
 ## Usage
 
-![prescription-choose-service-registry.gif](..%2Fprescription-choose-service-registry.gif)
+![prescription-choose-service-registry.gif](gif%2Fprescription-choose-service-registry.gif)
 
 ## Tests
 
 ``` bash
-npm test
+TODO
 ```
 
 ## Built With
