@@ -5,8 +5,8 @@ export default [
     icon: { icon: 'tabler-smart-home' },
   },
   {
-    title: 'Documentation',
-    to: { name: 'documentation' },
+    title: 'Tutorial',
+    to: { name: 'tutorial' },
     icon: { icon: 'tabler-file' },
   },
 ]
