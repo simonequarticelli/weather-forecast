@@ -313,7 +313,7 @@ const onSubmit = () => {
                 />
                 <VCheckbox
                   v-model="filters.rainAndSnow"
-                  label="Sunrise/Sunset"
+                  label="Rain/Snow"
                 />
               </VCol>
             </VRow>
