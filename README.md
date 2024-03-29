@@ -21,6 +21,11 @@ First, clone the repository to your local machine:
 ``` bash
 git clone https://github.com/simonequarticelli/weather-forecast.git cd weather-forecast
 ```
+In .env file insert API key after registration here <br>
+👉 https://openweathermap.org/api
+``` bash
+VITE_API_KEY={your_API_key}
+```
 
 Then build and run your Docker containers:
 ``` bash
